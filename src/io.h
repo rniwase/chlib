@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -73,6 +74,7 @@ SFR(P4_PU, 0xc3);       // P4 pull-up enable register
 SFR(P0_DIR, 0xc4);      // P0 direction control register
 SFR(P0_PU, 0xc5);       // P0 pull-up enable register
 SFR(PORT_CFG, 0xc6);    // Port configuration register
+SFR(P4_CFG, 0xc7);       // P5 input register
 SFR(P5_IN, 0xc7);       // P5 input register
 SFR(T2MOD, 0xc9);       // Timer2 mode register
 SFR(PIN_FUNC, 0xce);    // Function pins select register
@@ -167,10 +169,19 @@ SBIT(UIF_DETECT, 0xd8, 0);    // USB_INT_FG, checking device connection (host)
 SBIT(UIF_TRANSFER, 0xd8, 1);  // USB_INT_FG, USB transfer complete
 SBIT(UIF_SUSPEND, 0xd8, 2);   // USB_INT_FG, USB suspend or resume
 SBIT(U_TOG_OK, 0xd8, 6);      // USB_INT_FG, Current USB transmit data toggle
+SBIT(U_IS_NAK, 0xd8, 7);      // USB_INT_FG, NAK responce was reveiced (device)
 SBIT(IE_TMR3, 0xe8, 1);       // IE_EX, Timer3 interruprt enable bit
 SBIT(IE_USB, 0xe8, 2);        // IE_EX, USB interruprt enable bit
 SBIT(IE_UART1, 0xe8, 4);      // IE_EX, UART1 interruprt enable bit
 SBIT(IE_GPIO, 0xe8, 6);       // IE_EX, GPIO interruprt enable bit
+SBIT(IP_PH_FLAG, 0xb8, 7);    // IP, High priority interrupt execution flag
+SBIT(IP_PL_FLAG, 0xb8, 6);    // IP, Low priority interrupt execution flag
+SBIT(IP_PT2, 0xb8, 5);        // IP, Timer2 interrupt priority control bit
+SBIT(IP_PS, 0xb8, 4);         // IP, UART0 interrupt priority control bit
+SBIT(IP_PT1, 0xb8, 3);        // IP, Timer1 interrupt priority control bit
+SBIT(IP_PX1, 0xb8, 2);        // IP, External1 interrupt priority control bit
+SBIT(IP_PT0, 0xb8, 1);        // IP, Timer0 interrupt priority control bit
+SBIT(IP_PX0, 0xb8, 0);        // IP, External0 / LED Control Card interrupt priority control bit
 
 enum {
   SMOD = 0x80,             // PCON, Baud rate selection for UART0 mode 1/2/3
@@ -181,6 +192,8 @@ enum {
   bIER_PIN_MOD1 = 0x20,    // SER1_IER, UART1 pin mode high bit
   bIER_PIN_MOD0 = 0x10,    // SER1_IER, UART1 pin mode low bit
   bIER_RECV_RDY = 0x01,    // SER1_IER, UART1 receiver data ready
+  bIER_THR_EMPTY = 0x02,   // SER1_IER, UART1 transmitter store register empty
+  bIER_LINE_STAT = 0x04,   // SER1_IER, UART1 receiver line status
   bFCR_FIFO_EN = 0x01,     // SER1_FCR, UART1 FIFO enable
   bFCR_R_FIFO_CLR = 0x02,  // SER1_FCR, UART1 receiver FIFO clear
   bFCR_T_FIFO_CLR = 0x04,  // SER1_FCR, UART1 transmitter FIFO clear
@@ -243,23 +256,33 @@ enum {
   UEP_T_RES_STALL = 0x03,  // UEPx_CTRL, Handshake stall response for EPn TX
   MASK_UEP_R_RES = 0x0c,   // UEPx_CTRL, mask for UEP_R_RES_*
   UEP_R_RES_ACK = 0x00,    // UEPx_CTRL, Handshake ack response for EPn RX
-  UEP_R_RES_NAK = 0x80,    // UEPx_CTRL, Handshake nak response for EPn RX
-  UEP_R_RES_STALL = 0xc0,  // UEPx_CTRL, Handshake stall response for EPn RX
+  UEP_R_RES_NAK = 0x08,    // UEPx_CTRL, Handshake nak response for EPn RX
+  UEP_R_RES_STALL = 0x0c,  // UEPx_CTRL, Handshake stall response for EPn RX
   bUEP_AUTO_TOG = 0x10,    // UEPx_CTRL, automatic toggle
   bUH_SOF_EN = 0x40,       // UH_SETUP, USB host automatic SOF enable
+  bUH_PRE_PID_EN = 0x80,   // UH_SETUP, USB host Low-speed preamble packet PRE PID enable bit
   bUIE_BUS_RST = 0x01,     // USB_INT_EN, USB bus reset event (device)
   bUIE_DETECT = 0x01,      // USB_INT_EN, USB device detected event (host)
   bUIE_TRANSFER = 0x02,    // USB_INT_EN, USB transfer complete interrupt flag
   bUIE_SUSPEND = 0x04,     // USB_INT_EN, USB suspend or resume interrupt flag
+  bUIE_HST_SOF = 0x08,     // USB_INT_EN, SOF timer interrupt
+  bUIE_FIFO_OV = 0x10,     // USB_INT_EN, FIFO overflow
+  bUIE_DEV_NAK = 0x40,     // USB_INT_EN, NAK receive interrupt
+  bUIE_DEV_SOF = 0x80,     // USB_INT_EN, SOF receive interrupt
   bUC_DMA_EN = 0x01,       // USB_CTRL, Enable DMA and interrupt
   bUC_INT_BUSY = 0x08,     // USB_CTRL, Automatic responding busy
   bUC_DEV_PU_EN = 0x20,    // USB_CTRL, Enable USB device function
   bUC_LOW_SPEED = 0x40,    // USB_CTRL, USB bus speed selection
   bUC_HOST_MODE = 0x80,    // USB_CTRL, USB mode selection
   bUMS_SUSPEND = 0x04,     // USB_MIS_ST, USB suspend status
+  bUMS_H0_ATTACH = 0x01,   // USB_MIS_ST, the USB device connection status bit of the HUB0 port
+  bUMS_H1_ATTACH = 0x02,   // USB_MIS_ST, the USB device connection status bit of the HUB1 port
   bUD_PORT_EN = 0x01,      // UDEV_CTRL, Enable USB physical port I/O
+  bUD_GP_BIT = 0x02,       // UDEV_CTRL, General purpose register
+  bUD_LOW_SPEED = 0x04,    // UDEV_CTRL, USB device bus speed selection
   bUD_DM_PD_DIS = 0x10,    // UDEV_CTRL, Disable USB DM pull-down register
   bUD_DP_PD_DIS = 0x20,    // UDEV_CTRL, Disable USB DP pull-down register
+  bUD_RECV_DIS = 0x40,     // UDEV_CTRL, Disable USB device physical port receiver
   bUEP1_TX_EN = 0x40,      // UEP4_1_MOD, Enable USB endpoint 1 transmittal
   bUEP1_RX_EN = 0x80,      // UEP4_1_MOD, Enable USB endpoint 1 receiving
   bUEP2_TX_EN = 0x04,      // UEP2_3_MOD, Enable USB endpoint 2 transmittal
@@ -305,5 +328,7 @@ __at(0x244c) uint8_t volatile UH_RX_DMA_H;
 __at(0x244d) uint8_t volatile UH_RX_DMA_L;
 __at(0x244e) uint8_t volatile UH_TX_DMA_H;
 __at(0x244f) uint8_t volatile UH_TX_DMA_L;
+
+__at(0x1740) uint8_t volatile RSVD_USB_BUF[192];     // Reserved memory for USB data buffer
 
 #endif  // __io_h__

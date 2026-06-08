@@ -11,12 +11,11 @@
 #include "interrupt.h"
 
 #ifdef __SDCC
-// timer3_tick_sec() relies on this timer3 interrupt handler.
-// Other functions work even without interrupts.
 extern void timer3_int(void) __interrupt(INT_NO_TMR3) __using(1);
 #endif
 
 void timer3_tick_init(void);
+void timer3_tick_deinit(void);
 uint16_t timer3_tick_raw(void);
 uint16_t timer3_tick_from_usec(uint16_t usec);
 uint16_t timer3_tick_msec(void);

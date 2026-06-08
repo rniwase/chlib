@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,5 +15,8 @@ void initialize(void);
 
 void delayMicroseconds(uint32_t us);
 void delay(uint32_t ms);
+
+void get_chip_uid(uint8_t* uid);
+void get_chip_uid_hex(char* uid_hex);
 
 #endif  // __ch559_h__

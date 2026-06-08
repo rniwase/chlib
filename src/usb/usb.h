@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -77,6 +78,8 @@ struct usb_desc_endpoint {
   uint8_t bmAttributes;
   uint16_t wMaxPacketSize;
   uint8_t bInterval;
+  uint8_t bRefresh;
+  uint8_t bSynchAddress;
 };
 
 struct usb_desc_qualifier {
@@ -152,6 +155,7 @@ enum {
   USB_DESC_HID = 0x21,
   USB_DESC_HID_REPORT = 0x22,
   USB_DESC_CS_INTERFACE = 0x24,
+  USB_DESC_CS_ENDPOINT = 0x25,
   USB_DESC_HUB = 0x29,
 
   // descriptor subtype

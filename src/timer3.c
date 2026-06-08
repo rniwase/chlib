@@ -6,11 +6,10 @@
 
 #include "io.h"
 
-static uint16_t sec_from_init = 0;
+static uint16_t timer3_tick = 0;
 
-// Interrupt handler called per 1 sec to count tick in secounds.
 void timer3_int(void) __interrupt(INT_NO_TMR3) __using(1) {
-  sec_from_init++;
+  timer3_tick++;
   T3_STAT |= bT3_IF_END;
 }
 
@@ -43,14 +42,11 @@ static bool timer3_tick_le(uint16_t tick) {
 }
 
 void timer3_tick_init(void) {
-  // Setup timer3 clock to 16kHz so that T3_COUNT counts automatically at 16kHz
   T3_SETUP |= bT3_EN_CK_SE;  // Enable to access divisor settings register
-  T3_CK_SE_L = 0xb8;         // Clock = Fsys(48M) / 3k(0xbb8) = 16kHz
-  T3_CK_SE_H = 0x0b;         // Note: T3_CK_SE is 12bit register
-
-  // Setup timer3 interrupt per 1 sec (16kHz / 0x3e80)
+  T3_CK_SE_L = 0x80;         // Clock = Fsys(48M) / 48k = 1kHz
+  T3_CK_SE_H = 0xbb;
   T3_SETUP &= ~bT3_EN_CK_SE;  // Disable
-  T3_END_L = 0x80;
+  T3_END_L = 0x70;
   T3_END_H = 0x3e;  // 1000 * 16
   T3_CTRL |= bT3_CLR_ALL;
   T3_CTRL &= ~bT3_CLR_ALL;
@@ -58,7 +54,14 @@ void timer3_tick_init(void) {
   T3_CTRL |= bT3_CNT_EN;   // Start counting
   T3_STAT = 0xff;
   IE_TMR3 = 1;  // Enable timer3 interrupt
-  EA = 1;       // Enable interruprts
+  // EA = 1;       // Enable interruprts
+}
+
+void timer3_tick_deinit(void) {
+  IE_TMR3 = 0;  // Disable timer3 interrupt
+  T3_SETUP = 0x00;  // Enable to access divisor settings register
+  T3_CTRL = 0x00;
+  T3_STAT = 0xff;
 }
 
 uint16_t timer3_tick_raw(void) {
@@ -83,13 +86,12 @@ uint16_t timer3_tick_msec(void) {
 }
 
 uint16_t timer3_tick_sec(void) {
-  return sec_from_init;
+  return timer3_tick;
 }
 
 bool timer3_tick_raw_between(uint16_t begin, uint16_t end) {
-  if (begin < end) {
+  if (begin < end)
     return timer3_tick_ge(begin) && timer3_tick_le(end);
-  }
   return timer3_tick_ge(begin) || timer3_tick_le(end);
 }
 

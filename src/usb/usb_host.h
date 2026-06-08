@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -29,6 +30,7 @@ struct usb_host {
 };
 
 void usb_host_init(struct usb_host* host);
+void usb_host_deinit(void);
 void usb_host_reset(void);
 void usb_host_poll(void);
 bool usb_host_ready(uint8_t hub);

@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -159,11 +160,9 @@ static struct usb_setup_req clear_port_connection_feature = {
 
 static struct usb_host* usb_host = 0;
 
-static uint8_t _rx_buffer[64 + 1];
-static uint8_t* rx_buffer = _rx_buffer;
+static uint8_t* rx_buffer = &RSVD_USB_BUF[0];
 static uint8_t buffer[1024];
-static uint8_t _tx_buffer[64 + 1];
-static uint8_t* tx_buffer = _tx_buffer;
+static uint8_t* tx_buffer = &RSVD_USB_BUF[64];
 static uint16_t ep_max_packet_size[2][16];
 static uint8_t bulk_out_toggle[2][16];
 
@@ -510,6 +509,13 @@ static bool state_get_configuration_desc_recv(uint8_t hub) {
   no_remote_wakeup[hub] = (desc->bmAttributes & 0x20) == 0;
   if (usb_host->check_configuration_desc) {
     hid_interface_number[hub] = usb_host->check_configuration_desc(hub, buffer);
+    // --- Dirty hack for MIDI device connection. Fix it if use HID device.
+    if (hid_interface_number[hub] != 0) {
+      // If an invalid descriptor is obtained, reacquire configuration descriptor.
+      delay_ms(hub, 1000, STATE_GET_CONFIGURATION_DESC);
+      return false;
+    }
+    // ---
   }
   set_configuration_descriptor.wValue = desc->bConfigurationValue;
   // Note: multiple configurations are not supported.
@@ -1002,11 +1008,6 @@ void usb_host_log_nak(void) {
 void usb_host_init(struct usb_host* host) {
   usb_host = host;
 
-  // DMA addresses must be even
-  if ((uint16_t)rx_buffer & 1)
-    rx_buffer++;
-  if ((uint16_t)tx_buffer & 1)
-    tx_buffer++;
   IE_USB = 0;  // Disable USB interrupts
   USB_CTRL = bUC_HOST_MODE;
   USB_DEV_AD = 0x00;
@@ -1036,6 +1037,14 @@ void usb_host_init(struct usb_host* host) {
     state[i] = STATE_IDLE;
 
   timer3_tick_init();
+}
+
+void usb_host_deinit(void) {
+  IE_USB = 0;  // Disable USB interrupts
+  USB_CTRL = 0x00;  // Clear USB processor reset bit
+  UH_SETUP = 0x00;
+  USB_INT_FG = 0xff;      // Clear interrupt flags
+  timer3_tick_deinit();
 }
 
 void usb_host_reset(void) {

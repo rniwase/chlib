@@ -1,9 +1,12 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #ifndef __interrupt_h__
 #define __interrupt_h__
+
+#include <stdint.h>
 
 enum {
   INT_NO_INT0 = 0,
@@ -21,5 +24,10 @@ enum {
   INT_NO_GPIO = 12,
   INT_NO_WDOG = 13,
 };
+
+inline void enable_interrupt(void);
+inline void disable_interrupt(void);
+inline void reset_interrupt_priority(void);
+void set_interrupt_priority(uint8_t int_no);
 
 #endif  // __interrupt_h__

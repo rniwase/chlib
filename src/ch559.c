@@ -1,4 +1,5 @@
 // Copyright 2021 Takashi Toyoshima <toyoshim@gmail.com>. All rights reserved.
+// Copyright 2026 Ryohei Niwase <ryohei@niwase.net>. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -27,7 +28,7 @@ __asm
 loop1$:
   mov a,#8
 loop2$:
-  dec a 
+  dec a
   jnz loop2$
   nop
   nop
@@ -75,7 +76,7 @@ void initialize(void) {
   TI = 1;   // Set transmit interrupt flag for the first transmit
 
   // GPIO
-  PORT_CFG = 0x00;  // 5mA push-pull for port 0-3 by default
+  PORT_CFG = 0x0F;  // 5mA open-deain for port 0-3 by default
 
   // SerialLibrary
   serial_init();
@@ -99,4 +100,33 @@ void delayMicroseconds(uint32_t us) {
 void delay(uint32_t ms) {
   for (uint32_t i = 0; i < ms; ++i)
     delayMicroseconds(1000);
+}
+
+static char U4ToHEX(uint8_t val) {
+  if (val < 10)
+    return '0' + val;
+  return 'A' + val - 10;
+}
+
+void get_chip_uid(uint8_t* uid) {
+  E_DIS = 1;
+  uid[0] = *(const uint8_t __code *)(0x20);
+  uid[1] = *(const uint8_t __code *)(0x21);
+  uid[2] = *(const uint8_t __code *)(0x22);
+  uid[3] = *(const uint8_t __code *)(0x23);
+  E_DIS = 0;
+}
+
+void get_chip_uid_hex(char* uid_hex) {
+  uint8_t uid[4];
+  get_chip_uid(uid);
+  uid_hex[0] = U4ToHEX(uid[3] >> 4);
+  uid_hex[1] = U4ToHEX(uid[3] & 0x0F);
+  uid_hex[2] = U4ToHEX(uid[2] >> 4);
+  uid_hex[3] = U4ToHEX(uid[2] & 0x0F);
+  uid_hex[4] = U4ToHEX(uid[1] >> 4);
+  uid_hex[5] = U4ToHEX(uid[1] & 0x0F);
+  uid_hex[6] = U4ToHEX(uid[0] >> 4);
+  uid_hex[7] = U4ToHEX(uid[0] & 0x0F);
+  uid_hex[8] = '\0';
 }
