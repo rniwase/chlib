@@ -1,12 +1,3 @@
-build
-build.bin
-test/*\.o
-test/out
-test/test
-test\.*
-*_example\.bin
-*\.asm
-*\.lst
-*\.rel
-*\.rst
-*\.sym
+workdir/
+result
+*.bin
