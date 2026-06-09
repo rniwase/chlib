@@ -14,8 +14,6 @@ static char chip_uid_hex[9];
 static struct uart1int u1int;
 static struct midi_device usb_midi_device;
 
-static bool device_connected;
-
 static struct fifo fifo_u2m;
 static struct fifo fifo_m2u;
 static struct m2u_data m2u;
@@ -46,21 +44,18 @@ void uart1_thr_empty(void) {
 
 void usb_midi_device_connected(void) {
   Serial.printf("USB Device connected\n");
-  device_connected = true;
   uart1_set_interrupt(true, true);
 }
 
 void usb_midi_device_suspend(void) {
   Serial.printf("USB Device suspend\n");
   uart1_set_interrupt(false, false);
-  device_connected = false;
   init_buffers();
 }
 
 void usb_midi_device_bus_reset(void) {
   Serial.printf("USB Device bus reset\n");
   uart1_set_interrupt(false, false);
-  device_connected = false;
   init_buffers();
 }
 
